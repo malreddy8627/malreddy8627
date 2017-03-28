@@ -3,6 +3,7 @@ import pandas as pd #for data frames
 from sklearn import tree #tree is the sub package from sklearn for classification problem
 from sklearn import preprocessing #for label encoding , for scaling and for normalization
 import pydot 
+from sklearn import ensemble
 from sklearn import metrics
 from sklearn import model_selection ####for cross validation or k-folds for sampling
 from sklearn.externals import joblib ## for import the fit model to validate against to test data 
@@ -56,61 +57,76 @@ titanic_train1.Embarked = le.fit_transform(titanic_train1.Embarked)
 x_train = titanic_train1[['Pclass','Sex','Embarked','Fare']]
 #x_train = titanic_train1[['Fare']]
 y_train = titanic_train1['Survived']
+#oob scrore is computed as part of model construction process
+rf_estimator = ensemble.RandomForestClassifier(n_estimators = 200, max_features = 4, oob_score = True, random_state = 10) ### random_state is like seed 
+#####defines the params grid as key value pair based on above tree parameters
+rf_estimator.fit(x_train, y_train)
+rf_estimator.oob_score_
 
-dt = tree.DecisionTreeClassifier()
-######cross validation or k folds to 100% data participation
-cv_score_array = model_selection.cross_val_score(dt, x_train, y_train, cv=15)
-print(cv_score_array)
-######average score of above 10 samples like cv=10 or 15 samples
-bios_score = cv_score_array.mean()
-###variance of above all samples means cv_score_array
-var = cv_score_array.std()
-dt.fit(x_train, y_train)
-#####model deployement or import by using joblib package
-joblib.dump(dt, "dt_fit2.pkl")
+#####random forest trees pdf
+rf_trees = rf_estimator.estimators_[0].tree_
+
+dot_data = io.StringIO() 
+tree.export_graphviz(rf_trees, out_file = dot_data, feature_names = x_train.columns)
+graph = pydot.graph_from_dot_data(dot_data.getvalue())[0] 
+graph.write_pdf("rf0.pdf")
+
+#CV-evalaution is done for each combination of parameters
+#Final model is built based on best parameterd discovered in the process
+rf_estimator1 = ensemble.RandomForestClassifier(oob_score=True)
+param_grid = {'n_estimators':[100,200,500,1000], 'max_features':[2,3,4]}
+grid_model = model_selection.GridSearchCV(rf_estimator1, param_grid, cv=10, n_jobs=4)
+grid_model.fit(x_train, y_train)
+grid_model.grid_scores_
+grid_model.best_params_
+grid_model.best_score_
+
+#####random forest trees pdf
+###rf_trees1 = rf_estimator1.estimators_[0].tree_
 
 dot_data = io.StringIO() 
 tree.export_graphviz(dt, out_file = dot_data, feature_names = x_train.columns)
 graph = pydot.graph_from_dot_data(dot_data.getvalue())[0] 
 graph.write_pdf("dt2.pdf")
 
+
 #####reading test data
-##titanic_test = pd.read_csv("test.csv")
-#titanic_test.shape
-#titanic_test.info()
+titanic_test = pd.read_csv("test.csv")
+titanic_test.shape
+titanic_test.info()
 #
 ######handle the missing values 
 ####at variable level and at dataframe level
-#sum(titanic_test['Age'].isnull()) ####at variable level count
-#titanic_test.apply(lambda x : sum(x.isnull()))
-#titanic_test.Age[titanic_test['Age'].isnull()] = titanic_test['Age'].mean()
-#titanic_test.Fare[titanic_test['Fare'].isnull()] = titanic_test['Fare'].mean()
+sum(titanic_test['Age'].isnull()) ####at variable level count
+titanic_test.apply(lambda x : sum(x.isnull()))
+titanic_test.Age[titanic_test['Age'].isnull()] = titanic_test['Age'].mean()
+titanic_test.Fare[titanic_test['Fare'].isnull()] = titanic_test['Fare'].mean()
 ####type casting means conversion of object variables to categorical variables.
 ####if we look at data type of Sex , as off now it is an object or sometimes it is int also, 
 ###it should be converted to categorical variable 
-#titanic_test['Sex'] = titanic_test['Sex'].astype('category')
+titanic_test['Sex'] = titanic_test['Sex'].astype('category')
 ####we can check with info() method weather sex changed to categorical or not
-#titanic_test.info()  
+titanic_test.info()  
 #####like this change all categorical variables
-#titanic_test['Pclass'] = titanic_test['Pclass'].astype('category')
-#titanic_test['Embarked'] = titanic_test['Embarked'].astype('category')
+titanic_test['Pclass'] = titanic_test['Pclass'].astype('category')
+titanic_test['Embarked'] = titanic_test['Embarked'].astype('category')
 #
 ######Lebel Encoding , all input categorical variables should be converted to 
 ######numerics coz decision tree algorithm can not understand the categorical variables
 #
-#titanic_test1 = titanic_test.copy()
-###le = preprocessing.LabelEncoder() ### le is label  encoder already created in train we can use this le
-#titanic_test1.Pclass = le.fit_transform(titanic_test1.Pclass)
-#titanic_test1.Sex = le.fit_transform(titanic_test1.Sex)
-#titanic_test1.Embarked = le.fit_transform(titanic_test1.Embarked)
+titanic_test1 = titanic_test.copy()
+le = preprocessing.LabelEncoder() ### le is label  encoder already created in train we can use this le
+titanic_test1.Pclass = le.fit_transform(titanic_test1.Pclass)
+titanic_test1.Sex = le.fit_transform(titanic_test1.Sex)
+titanic_test1.Embarked = le.fit_transform(titanic_test1.Embarked)
 #
-#x_test = titanic_test1[['Pclass','Sex','Embarked','Fare']]
+x_test = titanic_test1[['Pclass','Sex','Embarked','Fare']]
 ##x_train = titanic_train1[['Fare']]
 #
 #dt = joblib.load("dt_fit2.pkl")
-#titanic_test1['Survived'] = dt.predict(x_test)
+titanic_test1['Survived'] = grid_model.predict(x_test)
 #
-#titanic_test1.to_csv("submission.csv", columns=['PassengerId','Survived'], index=False)
+titanic_test1.to_csv("submission.csv", columns=['PassengerId','Survived'], index=False)
 
 
 

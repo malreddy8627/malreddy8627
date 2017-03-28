@@ -57,22 +57,21 @@ x_train = titanic_train1[['Pclass','Sex','Embarked','Fare']]
 #x_train = titanic_train1[['Fare']]
 y_train = titanic_train1['Survived']
 
-dt = tree.DecisionTreeClassifier()
-######cross validation or k folds to 100% data participation
-cv_score_array = model_selection.cross_val_score(dt, x_train, y_train, cv=15)
-print(cv_score_array)
-######average score of above 10 samples like cv=10 or 15 samples
-bios_score = cv_score_array.mean()
-###variance of above all samples means cv_score_array
-var = cv_score_array.std()
-dt.fit(x_train, y_train)
+dt_estimator = tree.DecisionTreeClassifier()
+#####defines the params grid as key value pair based on above tree parameters
+param_grid =  {'max_depth':[3,4,5,6,7,8,9,10,11,12,13], 'min_samples_split':[2,3,4,5,6,7]}
+dt_grid = model_selection.GridSearchCV(dt_estimator,param_grid, cv=10, n_jobs = 5) ###n_jobs number of threads will be open
+dt_grid.fit(x_train, y_train)
 #####model deployement or import by using joblib package
-joblib.dump(dt, "dt_fit2.pkl")
+#joblib.dump(dt, "dt_fit2.pkl")
+dt_grid.best_params_
+dt_grid.best_score_
+dt_grid.grid_scores_
 
 dot_data = io.StringIO() 
-tree.export_graphviz(dt, out_file = dot_data, feature_names = x_train.columns)
+tree.export_graphviz(dt_estimator, out_file = dot_data, feature_names = x_train.columns)
 graph = pydot.graph_from_dot_data(dot_data.getvalue())[0] 
-graph.write_pdf("dt2.pdf")
+graph.write_pdf("dt_grid1.pdf")
 
 #####reading test data
 ##titanic_test = pd.read_csv("test.csv")
