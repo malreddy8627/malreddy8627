@@ -57,7 +57,7 @@ titanic_train1.Embarked = le.fit_transform(titanic_train1.Embarked)
 x_train = titanic_train1[['Pclass','Sex','Embarked','Fare']]
 #x_train = titanic_train1[['Fare']]
 y_train = titanic_train1['Survived']
-#adaptive boosting
+#adaptive boosting 1 st approach
 adaboost_estimator = ensemble.AdaBoostClassifier(n_estimators = 5,random_state = 10)
 scores = model_selection.cross_val_score(adaboost_estimator, x_train, y_train, cv =10,)
 scores.mean()
@@ -65,13 +65,21 @@ adaboost_estimator.fit(x_train, y_train)
 adaboost_estimator.estimator_weights_
 adaboost_estimator.estimator_errors_
 
+#adaptive boosting 2nd approach
+adaboost_estimator1 = ensemble.AdaBoostClassifier(base_estimator = tree.DecisionTreeClassifier(), n_estimators = 3)
+scores1 = model_selection.cross_val_score(adaboost_estimator1, x_train, y_train, cv =10,)
+scores1.mean()
+adaboost_estimator1.fit(x_train, y_train)
+adaboost_estimator1.estimator_weights_
+adaboost_estimator1.estimator_errors_
+
 #####random forest trees pdf
-rf_trees = rf_estimator.estimators_[0].tree_
+adaboost_trees1 = adaboost_estimator1.estimators_[0].tree_
 
 dot_data = io.StringIO() 
-tree.export_graphviz(rf_trees, out_file = dot_data, feature_names = x_train.columns)
+tree.export_graphviz(adaboost_trees1, out_file = dot_data, feature_names = x_train.columns)
 graph = pydot.graph_from_dot_data(dot_data.getvalue())[0] 
-graph.write_pdf("rf0.pdf")
+graph.write_pdf("ad0.pdf")
 
 #CV-evalaution is done for each combination of parameters
 #Final model is built based on best parameterd discovered in the process
@@ -124,7 +132,7 @@ x_test = titanic_test1[['Pclass','Sex','Embarked','Fare']]
 ##x_train = titanic_train1[['Fare']]
 #
 #dt = joblib.load("dt_fit2.pkl")
-titanic_test1['Survived'] = grid_model.predict(x_test)
+titanic_test1['Survived'] = adaboost_estimator1.predict(x_test)
 #
 titanic_test1.to_csv("submission.csv", columns=['PassengerId','Survived'], index=False)
 
