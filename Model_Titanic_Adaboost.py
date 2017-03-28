@@ -57,11 +57,13 @@ titanic_train1.Embarked = le.fit_transform(titanic_train1.Embarked)
 x_train = titanic_train1[['Pclass','Sex','Embarked','Fare']]
 #x_train = titanic_train1[['Fare']]
 y_train = titanic_train1['Survived']
-#oob scrore is computed as part of model construction process
-rf_estimator = ensemble.RandomForestClassifier(n_estimators = 200, max_features = 4, oob_score = True, random_state = 10)
-#####defines the params grid as key value pair based on above tree parameters
-rf_estimator.fit(x_train, y_train)
-rf_estimator.oob_score_
+#adaptive boosting
+adaboost_estimator = ensemble.AdaBoostClassifier(n_estimators = 5,random_state = 10)
+scores = model_selection.cross_val_score(adaboost_estimator, x_train, y_train, cv =10,)
+scores.mean()
+adaboost_estimator.fit(x_train, y_train)
+adaboost_estimator.estimator_weights_
+adaboost_estimator.estimator_errors_
 
 #####random forest trees pdf
 rf_trees = rf_estimator.estimators_[0].tree_
